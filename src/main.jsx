@@ -78,7 +78,7 @@ function App() {
     }
     const newProfile = {
       id: user.id,
-      display_name: authForm.displayName || user.email?.split("@")[0] || "New stylist",
+      display_name: user.user_metadata?.display_name || authForm.displayName || user.email?.split("@")[0] || "New stylist",
       age_group: "25-34",
       style_signal: "minimal street"
     };
@@ -90,7 +90,7 @@ function App() {
   async function loadAppData() {
     const [closetResult, feedResult, savesResult] = await Promise.all([
       supabase.from("closet_items").select("*").order("created_at", { ascending: false }),
-      supabase.from("outfits").select("*, profiles(display_name, age_group, style_signal), outfit_items(closet_item_id, closet_items(*))").order("created_at", { ascending: false }).limit(60),
+      supabase.from("outfits").select("*, outfit_items(closet_item_id, closet_items(*))").order("created_at", { ascending: false }).limit(60),
       supabase.from("outfit_saves").select("outfit_id")
     ]);
 
@@ -99,8 +99,21 @@ function App() {
       return;
     }
 
+    const outfits = feedResult.data || [];
+    const profileIds = [...new Set(outfits.map((outfit) => outfit.user_id).filter(Boolean))];
+    const profilesResult = profileIds.length
+      ? await supabase.from("profiles").select("id, display_name, age_group, style_signal").in("id", profileIds)
+      : { data: [], error: null };
+
+    if (profilesResult.error) {
+      setStatus(profilesResult.error.message);
+      return;
+    }
+
+    const profilesById = new Map((profilesResult.data || []).map((userProfile) => [userProfile.id, userProfile]));
+
     setCloset(closetResult.data || []);
-    setFeed(feedResult.data || []);
+    setFeed(outfits.map((outfit) => ({ ...outfit, profiles: profilesById.get(outfit.user_id) })));
     setSaves((savesResult.data || []).map((save) => save.outfit_id));
   }
 
@@ -109,7 +122,14 @@ function App() {
     setStatus("");
     const credentials = { email: authForm.email, password: authForm.password };
     const result = authMode === "sign-up"
-      ? await supabase.auth.signUp(credentials)
+      ? await supabase.auth.signUp({
+          ...credentials,
+          options: {
+            data: {
+              display_name: authForm.displayName || authForm.email.split("@")[0]
+            }
+          }
+        })
       : await supabase.auth.signInWithPassword(credentials);
 
     if (result.error) {
@@ -117,7 +137,17 @@ function App() {
       return;
     }
 
-    setStatus(authMode === "sign-up" ? "Account created. Check email confirmation settings in Supabase if sign-in pauses here." : "Signed in.");
+    if (authMode === "sign-up") {
+      if (result.data.session) {
+        setStatus("Account created. You are signed in.");
+      } else {
+        setAuthMode("sign-in");
+        setStatus("Account created. Confirm your email, then sign in.");
+      }
+      return;
+    }
+
+    setStatus("Signed in.");
   }
 
   async function updateProfile(field, value) {
