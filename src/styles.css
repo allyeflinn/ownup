@@ -263,6 +263,11 @@ textarea {
   gap: 14px;
 }
 
+.closet-grid,
+.recommend-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 240px));
+}
+
 .outfit-card,
 .item-card,
 .styler-summary {
@@ -350,10 +355,14 @@ textarea {
   display: grid;
   gap: 10px;
   padding: 12px;
+  align-content: start;
+  max-width: 260px;
 }
 
 .item-visual {
-  min-height: 174px;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  max-height: 240px;
   overflow: hidden;
   position: relative;
   border: 1px solid rgba(22, 25, 31, 0.08);
