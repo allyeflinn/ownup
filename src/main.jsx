@@ -88,21 +88,34 @@ function App() {
   }
 
   async function loadAppData() {
-    const [closetResult, feedResult, savesResult] = await Promise.all([
-      supabase.from("closet_items").select("*").order("created_at", { ascending: false }),
-      supabase.from("outfits").select("*, profiles(display_name, age_group, style_signal), outfit_items(closet_item_id, closet_items(*))").order("created_at", { ascending: false }).limit(60),
-      supabase.from("outfit_saves").select("outfit_id")
-    ]);
+  const [closetResult, feedResult, savesResult] = await Promise.all([
+    supabase.from("closet_items").select("*").order("created_at", { ascending: false }),
+    supabase.from("outfits").select("*, outfit_items(closet_item_id, closet_items(*))").order("created_at", { ascending: false }).limit(60),
+    supabase.from("outfit_saves").select("outfit_id")
+  ]);
 
-    if (closetResult.error || feedResult.error || savesResult.error) {
-      setStatus(closetResult.error?.message || feedResult.error?.message || savesResult.error?.message);
-      return;
-    }
-
-    setCloset(closetResult.data || []);
-    setFeed(feedResult.data || []);
-    setSaves((savesResult.data || []).map((save) => save.outfit_id));
+  if (closetResult.error || feedResult.error || savesResult.error) {
+    setStatus(closetResult.error?.message || feedResult.error?.message || savesResult.error?.message);
+    return;
   }
+
+  const outfits = feedResult.data || [];
+  const profileIds = [...new Set(outfits.map((outfit) => outfit.user_id).filter(Boolean))];
+  const profilesResult = profileIds.length
+    ? await supabase.from("profiles").select("id, display_name, age_group, style_signal").in("id", profileIds)
+    : { data: [], error: null };
+
+  if (profilesResult.error) {
+    setStatus(profilesResult.error.message);
+    return;
+  }
+
+  const profilesById = new Map((profilesResult.data || []).map((userProfile) => [userProfile.id, userProfile]));
+
+  setCloset(closetResult.data || []);
+  setFeed(outfits.map((outfit) => ({ ...outfit, profiles: profilesById.get(outfit.user_id) })));
+  setSaves((savesResult.data || []).map((save) => save.outfit_id));
+}
 
   async function handleAuth(event) {
     event.preventDefault();
