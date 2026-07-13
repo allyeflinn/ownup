@@ -263,6 +263,11 @@ textarea {
   gap: 14px;
 }
 
+.closet-grid,
+.recommend-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 240px));
+}
+
 .outfit-card,
 .item-card,
 .styler-summary {
@@ -326,6 +331,12 @@ textarea {
   gap: 8px;
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .chip {
   padding: 7px 10px;
   border: 1px solid var(--line);
@@ -346,14 +357,50 @@ textarea {
   color: #fff;
 }
 
+.file-picker {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: #fbfaf7;
+  color: var(--ink);
+}
+
+.file-picker input {
+  display: none;
+}
+
+.file-picker-label {
+  display: inline-grid;
+  place-items: center;
+  min-height: 42px;
+  border-radius: var(--radius);
+  background: var(--teal);
+  color: #fff;
+  font-weight: 760;
+}
+
+.selected-file {
+  color: var(--muted);
+  font-size: 0.86rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .item-card {
   display: grid;
   gap: 10px;
   padding: 12px;
+  align-content: start;
+  max-width: 260px;
 }
 
 .item-visual {
-  min-height: 174px;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  max-height: 240px;
   overflow: hidden;
   position: relative;
   border: 1px solid rgba(22, 25, 31, 0.08);
